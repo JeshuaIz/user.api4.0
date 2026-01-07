@@ -1,22 +1,20 @@
 # ===== ETAPA 1: BUILD =====
-FROM eclipse-temurin:21-jdk AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copiamos todo el contenido
+# 1. Copiamos todo el contenido del repositorio
 COPY . .
 
-# Buscamos el archivo mvnw y el pom.xml en todo el repositorio y entramos ahí
-# Este comando busca la carpeta que contiene el pom.xml y nos mueve ahí
+# 2. Buscamos dónde está el pom.xml y compilamos usando 'mvn' directamente
 RUN export PROJECT_DIR=$(find . -name "pom.xml" -printf '%h' -quit) && \
     cd $PROJECT_DIR && \
-    chmod +x ./mvnw && \
-    ./mvnw package -DskipTests
+    mvn package -DskipTests
 
 # ===== ETAPA 2: RUN =====
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Copiamos el resultado buscando donde sea que se haya generado el target
+# 3. Copiamos el resultado buscando el target generado
 COPY --from=build /app/**/target/quarkus-app/ /app/
 
 EXPOSE 8080
