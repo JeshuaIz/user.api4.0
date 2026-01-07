@@ -2,20 +2,29 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copiamos todo lo que hay en la raíz (incluyendo tu pom.xml y src)
+# 1. Copiamos TODO lo que subiste
 COPY . .
 
-# Ejecutamos la compilación
+# 2. TRUCO MAESTRO: 
+# Si el pom.xml está en una subcarpeta, movemos todo su contenido a la raíz /app
+RUN if [ ! -f "pom.xml" ]; then \
+    SUBDIR=$(find . -name "pom.xml" -printf '%h' -quit); \
+    echo "Moviendo archivos desde $SUBDIR a la raíz"; \
+    cp -r $SUBDIR/. .; \
+    fi
+
+# 3. Verificamos qué hay ahora (para estar seguros)
+RUN ls -la
+
+# 4. Compilamos
 RUN mvn package -DskipTests
 
 # ===== ETAPA 2: RUN =====
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Quarkus genera el resultado en target/quarkus-app/
+# Buscamos el resultado donde sea que haya quedado
 COPY --from=build /app/target/quarkus-app/ /app/
 
 EXPOSE 8080
-
-# Comando para arrancar la aplicación
 CMD ["java", "-jar", "quarkus-run.jar"]
